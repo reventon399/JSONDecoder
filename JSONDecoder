@@ -1,0 +1,51 @@
+import Foundation
+
+struct Cards: Decodable {
+    let cards: [Card]
+}
+
+struct Card: Decodable {
+    let name: String?
+    let type: String?
+    let manaCost: String?
+    let set: String?
+}
+
+let optCard = "https://api.magicthegathering.io/v1/cards?name=Opt"
+let blackLostusCard = "https://api.magicthegathering.io/v1/cards?name=black_lotus"
+
+//MARK: = Get data
+
+func getData(urlRequest: String) {
+    let urlRequest = URL(string: urlRequest)
+    guard let url = urlRequest else { return }
+    URLSession.shared.dataTask(with: url) { data, response, error in
+        if  ((error as? NSError) != nil)  {
+            print("Что-то пошло не так: \(error?.localizedDescription ?? "nil")")
+        } else if let response = response as? HTTPURLResponse, response.statusCode == 200 {
+            print("Код ответа из сервера: \(response.statusCode)")
+            guard let data = data else { return }
+            parseJSON(withData: data)
+        }
+    } .resume()
+}
+
+func parseJSON(withData data: Data) {
+    do {
+        let decodedJSON = try JSONDecoder().decode(Cards.self, from: data)
+        decodedJSON.cards.forEach { card in
+            print("""
+                    Name of card: \(card.name ?? "nil")
+                    Type of card: \(card.type ?? "nil")
+                    Mana cost: \(card.manaCost ?? "Info not found")
+                    Name of set: \(card.set ?? "nil")
+                    \n
+                    """)
+        }
+    } catch let error as NSError {
+        print("Error decoding JSON: \(error.localizedDescription)")
+    }
+}
+
+getData(urlRequest: blackLostusCard)
+getData(urlRequest: optCard)
