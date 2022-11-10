@@ -1,0 +1,75 @@
+import Foundation
+
+struct Cards: Decodable {
+    let cards: [Card]
+}
+
+struct Card: Decodable {
+    let name: String?
+    let type: String?
+    let manaCost: String?
+    let set: String?
+}
+
+struct CardsReferences {
+    static let cardsURL = "https://api.magicthegathering.io/v1/cards"
+    static let optCardName = "Opt"
+    static let blackLostusCardName = "Black Lotus"
+}
+
+class URLManager {
+    
+    private func getUrl() -> URL? {
+        let baseURL = CardsReferences.cardsURL
+        var components = URLComponents(string: baseURL)
+        components?.queryItems = [
+            URLQueryItem(name: "name", value: "Black Lotus|Opt")
+        ]
+        return components?.url
+    }
+    
+    func getData(urlRequest: String) {
+        let urlSession = URLSession.shared
+        guard let url = getUrl() else { return }
+        
+        urlSession.dataTask(with: url) { data, response, error in
+            guard error == nil else { fatalError() }
+            
+            guard let response = response as? HTTPURLResponse else { return }
+            switch response.statusCode {
+            case 200...299:
+                print("Все хорошечно")
+            default:
+                print("Что-то пошло не так")
+            }
+            
+            guard let data = data else { return }
+            self.parseJSON(withData: data)
+        }.resume()
+    }
+    
+    private func parseJSON(withData data: Data) {
+        do {
+            let decodedJSON = try JSONDecoder().decode(Cards.self, from: data)
+            decodedJSON.cards
+                .filter({ card in
+                    card.name == CardsReferences.optCardName || card.name == CardsReferences.blackLostusCardName
+                })
+                .forEach { card in
+                    print("""
+                    Имя карты: \(card.name ?? "nil")
+                    Тип: \(card.type ?? "nil")
+                    Мановая стоимость: \(card.manaCost ?? "nil")
+                    Название сета: \(card.set ?? "nil")
+                    \n
+                    """)
+                }
+        } catch let error as NSError {
+            print("Ошибка декодирования: \(error.localizedDescription)")
+        }
+    }
+}
+
+let blackLotusAndOptCardsUrl = CardsReferences.cardsURL
+let referenceManager = URLManager()
+referenceManager.getData(urlRequest: blackLotusAndOptCardsUrl)
